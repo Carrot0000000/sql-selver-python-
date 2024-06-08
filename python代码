@@ -1,0 +1,364 @@
+import pymssql
+
+def conn():
+    try:
+        connect = pymssql.connect(server='LAPTOP-OUGNT3VQ', 
+                                  user='root', 
+                                  password='Zkr1234', 
+                                  database='bookshop')
+        if connect:
+            print("连接成功!")
+        return connect
+    except pymssql.Error as e:
+        print("数据库连接失败：", e)
+        return None
+
+if __name__ == '__main__':
+    conn = conn()
+    if conn is not None:
+        # 可以继续进行数据库操作
+        pass
+    else:
+        # 处理连接失败的情况
+        pass
+
+
+
+
+import tkinter as tk
+from tkinter import ttk, messagebox, simpledialog
+import pymssql
+
+class DatabaseApp:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("书店管理系统")
+        self.master.geometry("1000x600")  # 设置窗口大小
+        
+        style = ttk.Style(self.master)
+        style.theme_use("clam")  # 使用主题提升美观度
+        
+        # 创建数据库连接
+        self.conn = pymssql.connect(server='LAPTOP-OUGNT3VQ', 
+                                    user='root', 
+                                    password='Zkr1234', 
+                                    database='bookshop')
+        self.cursor = self.conn.cursor()
+
+        # 使用Notebook
+        notebook = ttk.Notebook(master)
+        notebook.pack(expand=1, fill="both")
+        
+        # 添加进货的标签页
+        in_goods_frame = ttk.Frame(notebook)
+        notebook.add(in_goods_frame, text="进货")
+        
+        # 添加图书的标签页
+        add_book_frame = ttk.Frame(notebook)
+        notebook.add(add_book_frame, text="添加图书")
+        
+        # 查询图书的标签页
+        query_book_frame = ttk.Frame(notebook)
+        notebook.add(query_book_frame, text="查询图书")
+
+        # 查看/新增供应商的标签页
+        supplier_frame = ttk.Frame(notebook)
+        notebook.add(supplier_frame, text="查看/新增供应商")
+
+        # 查看/新增会员的标签页
+        member_frame = ttk.Frame(notebook)
+        notebook.add(member_frame, text="查看/新增会员")
+        
+        # 结账的标签页
+        checkout_frame = ttk.Frame(notebook)
+        notebook.add(checkout_frame, text="结账")
+
+        # 查看进货和销售记录的标签页
+        record_frame = ttk.Frame(notebook)
+        notebook.add(record_frame, text="查看进货和销售记录")
+
+        # 查看库存容量的标签页
+        stock_frame = ttk.Frame(notebook)
+        notebook.add(stock_frame, text="查看库存容量")
+        
+        self.create_in_goods_tab(in_goods_frame)
+        self.create_add_book_tab(add_book_frame)
+        self.create_query_book_tab(query_book_frame)
+        self.create_supplier_tab(supplier_frame)
+        self.create_member_tab(member_frame)
+        self.create_checkout_tab(checkout_frame)
+        self.create_record_tab(record_frame)
+        self.create_stock_tab(stock_frame)
+
+    def create_in_goods_tab(self, frame):
+        labels = ['进货单号', '书号', '图书类别', '供应商号', '图书进货数量']
+        self.in_goods_entries = {}
+        for idx, label in enumerate(labels):
+            ttk.Label(frame, text=label).grid(row=idx, column=0, padx=10, pady=10, sticky='w')
+            entry = ttk.Entry(frame)
+            entry.grid(row=idx, column=1, padx=10, pady=10, sticky='we')
+            self.in_goods_entries[label] = entry
+        
+        ttk.Button(frame, text="添加进货", command=self.add_in_goods).grid(row=len(labels), column=0, columnspan=2, padx=10, pady=10)
+
+    def create_add_book_tab(self, frame):
+        labels = ['书号', '图书名称', '图书类别', '出版社', '价格', '页数']
+        self.add_book_entries = {}
+        for idx, label in enumerate(labels):
+            ttk.Label(frame, text=label).grid(row=idx, column=0, padx=10, pady=10, sticky='w')
+            entry = ttk.Entry(frame)
+            entry.grid(row=idx, column=1, padx=10, pady=10, sticky='we')
+            self.add_book_entries[label] = entry
+        
+        ttk.Button(frame, text="添加图书", command=self.add_book).grid(row=len(labels), column=0, columnspan=2, padx=10, pady=10)
+
+    def create_query_book_tab(self, frame):
+        labels = ['书号', '图书名称', '图书类别', '出版社', '价格', '页数']
+        self.query_book_entries = {}
+        for idx, label in enumerate(labels):
+            ttk.Label(frame, text=label).grid(row=idx, column=0, padx=10, pady=10, sticky='w')
+            entry = ttk.Entry(frame)
+            entry.grid(row=idx, column=1, padx=10, pady=10, sticky='we')
+            self.query_book_entries[label] = entry
+
+        ttk.Button(frame, text="查询图书", command=self.query_books).grid(row=len(labels), column=0, columnspan=2, padx=10, pady=10)
+        ttk.Button(frame, text="删除图书", command=self.delete_book).grid(row=len(labels) + 1, column=0, columnspan=2, padx=10, pady=10)
+        ttk.Button(frame, text="修改图书", command=self.update_book).grid(row=len(labels) + 2, column=0, columnspan=2, padx=10, pady=10)
+
+        self.tree = ttk.Treeview(frame, columns=labels, show="headings")
+        for label in labels:
+            self.tree.heading(label, text=label)
+        self.tree.grid(row=len(labels) + 3, column=0, columnspan=2, sticky='nsew')
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=self.tree.yview)
+        scrollbar.grid(row=len(labels) + 3, column=2, sticky='ns')
+        self.tree.configure(yscrollcommand=scrollbar.set)
+
+        self.tree.bind("<ButtonRelease-1>", self.on_tree_select)
+
+    def create_supplier_tab(self, frame):
+        labels = ['供应商号', '供应商名称', '供应商电话', '供应商地址']
+        self.supplier_entries = {}
+        for idx, label in enumerate(labels):
+            ttk.Label(frame, text=label).grid(row=idx, column=0, padx=10, pady=10, sticky='w')
+            entry = ttk.Entry(frame)
+            entry.grid(row=idx, column=1, padx=10, pady=10, sticky='we')
+            self.supplier_entries[label] = entry
+        
+        ttk.Button(frame, text="添加供应商", command=self.add_supplier).grid(row=len(labels), column=0, columnspan=2, padx=10, pady=10)
+
+        self.supplier_tree = ttk.Treeview(frame, columns=labels, show="headings")
+        for label in labels:
+            self.supplier_tree.heading(label, text=label)
+        self.supplier_tree.grid(row=len(labels) + 1, column=0, columnspan=2, sticky='nsew')
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=self.supplier_tree.yview)
+        scrollbar.grid(row=len(labels) + 1, column=2, sticky='ns')
+        self.supplier_tree.configure(yscrollcommand=scrollbar.set)
+
+        ttk.Button(frame, text="查看供应商", command=self.query_suppliers).grid(row=len(labels) + 2, column=0, columnspan=2, padx=10, pady=10)
+
+    def create_member_tab(self, frame):
+        labels = ['顾客号', '顾客姓名', '顾客性别', '顾客年龄', '顾客电话']
+        self.member_entries = {}
+        for idx, label in enumerate(labels):
+            ttk.Label(frame, text=label).grid(row=idx, column=0, padx=10, pady=10, sticky='w')
+            entry = ttk.Entry(frame)
+            entry.grid(row=idx, column=1, padx=10, pady=10, sticky='we')
+            self.member_entries[label] = entry
+        
+        ttk.Button(frame, text="添加会员", command=self.add_member).grid(row=len(labels), column=0, columnspan=2, padx=10, pady=10)
+
+        self.member_tree = ttk.Treeview(frame, columns=labels, show="headings")
+        for label in labels:
+            self.member_tree.heading(label, text=label)
+        self.member_tree.grid(row=len(labels) + 1, column=0, columnspan=2, sticky='nsew')
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=self.member_tree.yview)
+        scrollbar.grid(row=len(labels) + 1, column=2, sticky='ns')
+        self.member_tree.configure(yscrollcommand=scrollbar.set)
+
+        ttk.Button(frame, text="查看会员", command=self.query_members).grid(row=len(labels) + 2, column=0, columnspan=2, padx=10, pady=10)
+
+    def create_checkout_tab(self, frame):
+        labels = ['销售单号', '书号', '顾客号', '图书销售数量']
+        self.checkout_entries = {}
+        for idx, label in enumerate(labels):
+            ttk.Label(frame, text=label).grid(row=idx, column=0, padx=10, pady=10, sticky='w')
+            entry = ttk.Entry(frame)
+            entry.grid(row=idx, column=1, padx=10, pady=10, sticky='we')
+            self.checkout_entries[label] = entry
+        
+        ttk.Button(frame, text="结账", command=self.checkout).grid(row=len(labels), column=0, columnspan=2, padx=10, pady=10)
+
+    def create_record_tab(self, frame):
+        self.record_type = tk.StringVar()
+        ttk.Radiobutton(frame, text="进货记录", variable=self.record_type, value="进货").grid(row=0, column=0, padx=10, pady=10, sticky='w')
+        ttk.Radiobutton(frame, text="销售记录", variable=self.record_type, value="销售").grid(row=0, column=1, padx=10, pady=10, sticky='w')
+        
+        self.record_tree = ttk.Treeview(frame, columns=["记录类型", "单号", "书号", "顾客号/供应商号", "数量", "日期", "金额"], show="headings")
+        for col in ["记录类型", "单号", "书号", "顾客号/供应商号", "数量", "日期", "金额"]:
+            self.record_tree.heading(col, text=col)
+        self.record_tree.grid(row=1, column=0, columnspan=2, sticky='nsew')
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=self.record_tree.yview)
+        scrollbar.grid(row=1, column=2, sticky='ns')
+        self.record_tree.configure(yscrollcommand=scrollbar.set)
+
+        ttk.Button(frame, text="查看记录", command=self.query_records).grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+
+    def create_stock_tab(self, frame):
+        labels = ['书号', '图书类别', '库存量']
+        self.stock_tree = ttk.Treeview(frame, columns=labels, show="headings")
+        for label in labels:
+            self.stock_tree.heading(label, text=label)
+        self.stock_tree.grid(row=0, column=0, columnspan=2, sticky='nsew')
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=self.stock_tree.yview)
+        scrollbar.grid(row=0, column=2, sticky='ns')
+        self.stock_tree.configure(yscrollcommand=scrollbar.set)
+
+        ttk.Button(frame, text="查看库存", command=self.query_stock).grid(row=1, column=0, columnspan=2, padx=10, pady=10)
+
+    def add_in_goods(self):
+        data = tuple(self.in_goods_entries[label].get() for label in self.in_goods_entries)
+        sql = "INSERT INTO 进货信息 (进货单号, 书号, 图书类别, 供应商号, 图书进货数量) VALUES (%s, %s, %s, %s, %s)"
+        try:
+            self.cursor.execute(sql, data)
+            self.conn.commit()
+            messagebox.showinfo("成功", "进货信息添加成功！")
+        except Exception as e:
+            messagebox.showerror("错误", str(e))
+            self.conn.rollback()
+
+    def add_book(self):
+        data = tuple(self.add_book_entries[label].get() for label in self.add_book_entries)
+        sql = "INSERT INTO 图书信息 (书号, 图书名称, 图书类别, 图书出版社, 图书价格, 图书页数) VALUES (%s, %s, %s, %s, %s, %s)"
+        try:
+            self.cursor.execute(sql, data)
+            self.conn.commit()
+            messagebox.showinfo("成功", "图书添加成功！")
+            self.query_books()  # 更新显示
+        except Exception as e:
+            messagebox.showerror("错误", str(e))
+            self.conn.rollback()
+
+    def query_books(self):
+        self.tree.delete(*self.tree.get_children())  # 清除现有数据
+        self.cursor.execute("SELECT * FROM 图书信息")
+        rows = self.cursor.fetchall()
+        for row in rows:
+            self.tree.insert('', 'end', values=row)
+
+    def delete_book(self):
+        book_id = self.query_book_entries['书号'].get()
+        if not book_id:
+            messagebox.showwarning("警告", "请输入要删除的书号！")
+            return
+        sql = "DELETE FROM 图书信息 WHERE 书号 = %s"
+        try:
+            self.cursor.execute(sql, (book_id,))
+            self.conn.commit()
+            messagebox.showinfo("成功", "图书删除成功！")
+            self.query_books()  # 更新显示
+        except Exception as e:
+            messagebox.showerror("错误", str(e))
+            self.conn.rollback()
+
+    def update_book(self):
+        book_id = self.query_book_entries['书号'].get()
+        if not book_id:
+            messagebox.showwarning("警告", "请输入要修改的书号！")
+            return
+        data = tuple(self.query_book_entries[label].get() for label in self.query_book_entries)
+        sql = "UPDATE 图书信息 SET 图书名称 = %s, 图书类别 = %s, 图书出版社 = %s, 图书价格 = %s, 图书页数 = %s WHERE 书号 = %s"
+        try:
+            self.cursor.execute(sql, data[1:] + (book_id,))
+            self.conn.commit()
+            messagebox.showinfo("成功", "图书信息更新成功！")
+            self.query_books()  # 更新显示
+        except Exception as e:
+            messagebox.showerror("错误", str(e))
+            self.conn.rollback()
+
+    def add_supplier(self):
+        data = tuple(self.supplier_entries[label].get() for label in self.supplier_entries)
+        sql = "INSERT INTO 供应商信息 (供应商号, 供应商名称, 供应商电话, 供应商地址) VALUES (%s, %s, %s, %s)"
+        try:
+            self.cursor.execute(sql, data)
+            self.conn.commit()
+            messagebox.showinfo("成功", "供应商信息添加成功！")
+        except Exception as e:
+            messagebox.showerror("错误", str(e))
+            self.conn.rollback()
+
+    def query_suppliers(self):
+        self.supplier_tree.delete(*self.supplier_tree.get_children())  # 清除现有数据
+        self.cursor.execute("SELECT * FROM 供应商信息")
+        rows = self.cursor.fetchall()
+        for row in rows:
+            self.supplier_tree.insert('', 'end', values=row)
+
+    def add_member(self):
+        data = tuple(self.member_entries[label].get() for label in self.member_entries)
+        sql = "INSERT INTO 顾客信息 (顾客号, 顾客姓名, 顾客性别, 顾客年龄, 顾客电话) VALUES (%s, %s, %s, %s, %s)"
+        try:
+            self.cursor.execute(sql, data)
+            self.conn.commit()
+            messagebox.showinfo("成功", "会员信息添加成功！")
+        except Exception as e:
+            messagebox.showerror("错误", str(e))
+            self.conn.rollback()
+
+    def query_members(self):
+        self.member_tree.delete(*self.member_tree.get_children())  # 清除现有数据
+        self.cursor.execute("SELECT * FROM 顾客信息")
+        rows = self.cursor.fetchall()
+        for row in rows:
+            self.member_tree.insert('', 'end', values=row)
+
+    def checkout(self):
+        data = tuple(self.checkout_entries[label].get() for label in self.checkout_entries)
+        sql = "INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES (%s, %s, %s, %s)"
+        try:
+            self.cursor.execute(sql, data)
+            self.conn.commit()
+            messagebox.showinfo("成功", "结账成功！")
+        except Exception as e:
+            messagebox.showerror("错误", str(e))
+            self.conn.rollback()
+
+    def query_records(self):
+        self.record_tree.delete(*self.record_tree.get_children())  # 清除现有数据
+        record_type = self.record_type.get()
+        if record_type == "进货":
+            self.cursor.execute("SELECT '进货' as 记录类型, 进货单号 as 单号, 书号, 供应商号 as 顾客号_供应商号, 图书进货数量 as 数量, 进货日期 as 日期, NULL as 金额 FROM 进货信息")
+        elif record_type == "销售":
+            self.cursor.execute("SELECT '销售' as 记录类型, 销售单号 as 单号, 书号, 顧客号 as 顾客号_供应商号, 图书销售数量 as 数量, 销售日期 as 日期, 销售金额 as 金额 FROM 销售信息")
+        rows = self.cursor.fetchall()
+        for row in rows:
+            self.record_tree.insert('', 'end', values=row)
+
+    def query_stock(self):
+        self.stock_tree.delete(*self.stock_tree.get_children())  # 清除现有数据
+        self.cursor.execute("SELECT 书号, 图书类别, 图书数量 as 库存量 FROM 库存信息")
+        rows = self.cursor.fetchall()
+        for row in rows:
+            self.stock_tree.insert('', 'end', values=row)
+
+    def on_tree_select(self, event):
+        selected_item = self.tree.selection()[0]
+        values = self.tree.item(selected_item, 'values')
+        
+        for idx, label in enumerate(self.query_book_entries):
+            self.query_book_entries[label].delete(0, tk.END)
+            self.query_book_entries[label].insert(0, values[idx])
+
+    def close(self):
+        self.conn.close()
+        self.master.quit()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = DatabaseApp(root)
+    root.mainloop()
