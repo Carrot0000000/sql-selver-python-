@@ -1,0 +1,327 @@
+-- 使用书店数据库
+USE bookshop;
+GO
+
+-- 删除已有的表以重新创建它们
+DROP TABLE IF EXISTS 销售信息;
+DROP TABLE IF EXISTS 进货信息;
+DROP TABLE IF EXISTS 库存信息;
+DROP TABLE IF EXISTS 顾客信息;
+DROP TABLE IF EXISTS 供应商信息;
+DROP TABLE IF EXISTS 图书信息;
+GO
+
+-- 重新创建图书信息表
+CREATE TABLE 图书信息(
+    书号 nchar(10) PRIMARY KEY,
+    图书名称 nchar(20) NOT NULL,
+    图书类别 nchar(20) NOT NULL,
+    图书出版社 nchar(20) NOT NULL,
+    图书价格 float NOT NULL,
+    图书页数 int NOT NULL
+);
+GO
+
+-- 重新创建顾客信息表
+CREATE TABLE 顾客信息(
+    顾客号 nchar(10) NOT NULL PRIMARY KEY,
+    姓名 nchar(20) NOT NULL,
+    性别 nchar(1) CHECK(性别 IN ('男', '女')),
+    年龄 int CHECK(年龄 BETWEEN 10 AND 150),
+    电话号码 nchar(20) NOT NULL
+);
+GO
+
+-- 重新创建供应商信息表
+CREATE TABLE 供应商信息(
+    供应商号 nchar(10) NOT NULL PRIMARY KEY,
+    供应商名称 nchar(20) NOT NULL,
+    电话号码 nchar(20) NOT NULL,
+    供应商地址 nchar(40) NOT NULL 
+);
+GO
+
+-- 重新创建进货信息表，启用级联删除
+CREATE TABLE 进货信息(
+    进货单号 nchar(10) NOT NULL PRIMARY KEY,
+    书号 nchar(10) NOT NULL,
+    供应商号 nchar(10) NOT NULL,
+    图书进货数量 int NOT NULL,
+    进货日期 date DEFAULT (GETDATE()),
+    FOREIGN KEY (书号) REFERENCES 图书信息(书号) ON DELETE CASCADE,
+    FOREIGN KEY (供应商号) REFERENCES 供应商信息(供应商号)
+);
+GO
+
+-- 重新创建销售信息表，启用级联删除
+CREATE TABLE 销售信息(
+    销售单号 nchar(10) NOT NULL PRIMARY KEY,
+    书号 nchar(10) NOT NULL,
+    顾客号 nchar(10) NOT NULL,
+    图书销售数量 int NOT NULL,
+    销售日期 date DEFAULT (GETDATE()),
+    销售金额 float DEFAULT 0,
+    FOREIGN KEY (书号) REFERENCES 图书信息(书号) ON DELETE CASCADE,
+    FOREIGN KEY (顾客号) REFERENCES 顾客信息(顾客号)
+);
+GO
+
+-- 重新创建库存信息表，启用级联删除
+CREATE TABLE 库存信息(
+    书号 nchar(10) NOT NULL PRIMARY KEY,
+    图书类别 nchar(20) NOT NULL,
+    图书数量 int NOT NULL,
+    FOREIGN KEY (书号) REFERENCES 图书信息(书号) ON DELETE CASCADE
+);
+GO
+
+-- 插入示例数据
+INSERT INTO 图书信息 VALUES ('001','水浒传','中国古代小说','新华出版社',45.2,540);
+INSERT INTO 图书信息 VALUES ('002','西游记','中国古代小说','新华出版社',38.5,500);
+INSERT INTO 图书信息 VALUES ('003','红楼梦','中国古代小说','新华出版社',50.0,680);
+INSERT INTO 图书信息 VALUES ('004','三国演义','中国古代小说','新华出版社',42.0,620);
+
+INSERT INTO 顾客信息 VALUES ('1','王壮','男',30,'1258468720');
+INSERT INTO 顾客信息 VALUES ('2','李丽','女',25,'1358468721');
+
+INSERT INTO 供应商信息 VALUES ('01','好再来','5265655','平顶山学院');
+INSERT INTO 供应商信息 VALUES ('02','文华书店','5265656','平顶山大学');
+
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a1','001','01',20);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a2','002','01',30);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a3','003','02',15);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a4','004','02',25);
+
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b1','001','1',2);
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b2','002','2',1);
+
+INSERT INTO 库存信息 VALUES ('001','中国古代小说',20);
+INSERT INTO 库存信息 VALUES ('002','中国古代小说',30);
+INSERT INTO 库存信息 VALUES ('003','中国古代小说',15);
+INSERT INTO 库存信息 VALUES ('004','中国古代小说',25);
+GO
+
+-- 插入更多图书信息
+INSERT INTO 图书信息 VALUES ('005', '傲慢与偏见', '英国古典小说', '外国出版社', 34.0, 420);
+INSERT INTO 图书信息 VALUES ('006', '哈利波特', '奇幻小说', '外国出版社', 60.0, 650);
+INSERT INTO 图书信息 VALUES ('007', '简·爱', '英国古典小说', '外国出版社', 38.5, 520);
+INSERT INTO 图书信息 VALUES ('008', '百年孤独', '拉美文学', '外国出版社', 58.0, 300);
+
+-- 插入更多顾客信息
+INSERT INTO 顾客信息 VALUES ('3', '张三', '男', 45, '1324567890');
+INSERT INTO 顾客信息 VALUES ('4', '李四', '女', 50, '1398765432');
+INSERT INTO 顾客信息 VALUES ('5', '王五', '男', 28, '1371234567');
+INSERT INTO 顾客信息 VALUES ('6', '赵六', '女', 35, '1387654321');
+
+-- 插入更多供应商信息
+INSERT INTO 供应商信息 VALUES ('03', '新世界', '5312345', '华北大学');
+INSERT INTO 供应商信息 VALUES ('04', '书海无涯', '5212345', '河北大学');
+
+-- 插入更多进货信息
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a5', '005', '03', 20);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a6', '006', '03', 15);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a7', '007', '04', 30);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a8', '008', '04', 25);
+
+-- 插入更多销售信息
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b3', '005', '3', 1);
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b4', '006', '4', 2);
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b5', '007', '5', 3);
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b6', '008', '6', 1);
+
+-- 插入更多库存信息
+INSERT INTO 库存信息 VALUES ('005', '英国古典小说', 40);
+INSERT INTO 库存信息 VALUES ('006', '奇幻小说', 45);
+INSERT INTO 库存信息 VALUES ('007', '英国古典小说', 30);
+INSERT INTO 库存信息 VALUES ('008', '拉美文学', 25);
+GO
+
+
+-- 插入更多图书信息
+INSERT INTO 图书信息 VALUES ('009', 'Crime and Punishment', 'Russian Literature', 'Global Books', 39.0, 550);
+INSERT INTO 图书信息 VALUES ('010', 'The Great Gatsby', 'American Classic', 'Liberty Press', 31.0, 320);
+INSERT INTO 图书信息 VALUES ('011', 'Don Quixote', 'European Literature', 'Continental Books', 45.0, 900);
+INSERT INTO 图书信息 VALUES ('012', 'One Hundred Years of Solitude', 'Magical Realism', 'Latino Books', 50.0, 470);
+
+-- 插入更多顾客信息
+INSERT INTO 顾客信息 VALUES ('7', 'Chen Kun', '男', 42, '1424356789');
+INSERT INTO 顾客信息 VALUES ('8', 'Zhou Wei', '女', 37, '1358924671');
+INSERT INTO 顾客信息 VALUES ('9', 'Liu Ming', '男', 29, '1387658490');
+INSERT INTO 顾客信息 VALUES ('10', 'Sun Yat', '女', 22, '1325671234');
+
+-- 插入更多供应商信息
+INSERT INTO 供应商信息 VALUES ('05', 'Literary World', '5356789', 'Shanghai University');
+INSERT INTO 供应商信息 VALUES ('06', 'Book Paradise', '5256789', 'Suzhou University');
+
+-- 插入更多进货信息
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a9', '009', '05', 10);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a10', '010', '05', 5);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a11', '011', '06', 20);
+INSERT INTO 进货信息 (进货单号, 书号, 供应商号, 图书进货数量) VALUES ('a12', '012', '06', 15);
+
+-- 插入更多销售信息
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b7', '009', '7', 3);
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b8', '010', '8', 1);
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b9', '011', '9', 2);
+INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量) VALUES ('b10', '012', '10', 4);
+
+-- 插入更多库存信息
+INSERT INTO 库存信息 VALUES ('009', 'Russian Literature', 13);
+INSERT INTO 库存信息 VALUES ('010', 'American Classic', 16);
+INSERT INTO 库存信息 VALUES ('011', 'European Literature', 25);
+INSERT INTO 库存信息 VALUES ('012', 'Magical Realism', 29);
+GO
+
+
+
+
+-- 创建视图查询各类图书的库存总数
+CREATE VIEW 图书库存总览 AS 
+SELECT 图书类别, SUM(图书数量) AS 种类数量 FROM 库存信息 GROUP BY 图书类别;
+GO
+
+-- 创建存储过程查询某段时间内各种图书的进货和销售情况
+CREATE PROCEDURE 查询进销情况
+    @date1 date,
+    @date2 date    
+AS
+BEGIN
+    SELECT * FROM 进货信息 WHERE 进货日期 >= @date1 AND 进货日期 <= @date2;
+    SELECT * FROM 销售信息 WHERE 销售日期 >= @date1 AND 销售日期 <= @date2;
+END;
+GO
+
+-- 创建触发器，自动更新库存信息
+CREATE TRIGGER 更新库存 ON 销售信息
+AFTER INSERT AS
+BEGIN
+    DECLARE @num int, @bnum nchar(10);
+    SELECT @num = 图书销售数量, @bnum = 书号 FROM inserted;
+    UPDATE 库存信息 SET 图书数量 = 图书数量 - @num WHERE 书号 = @bnum;
+END;
+GO
+
+
+
+
+--1. 存储过程：删除图书及其相关记录
+CREATE PROCEDURE DeleteBook
+    @BookID nchar(10)
+AS
+BEGIN
+    DELETE FROM 销售信息 WHERE 书号 = @BookID;
+    DELETE FROM 进货信息 WHERE 书号 = @BookID;
+    DELETE FROM 库存信息 WHERE 书号 = @BookID;
+    DELETE FROM 图书信息 WHERE 书号 = @BookID;
+END;
+GO
+
+
+--2. 存储过程：更新库存
+CREATE PROCEDURE UpdateInventory
+    @BookID nchar(10),
+    @Quantity int
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM 库存信息 WHERE 书号 = @BookID)
+    BEGIN
+        UPDATE 库存信息
+        SET 图书数量 = 图书数量 + @Quantity
+        WHERE 书号 = @BookID;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO 库存信息 (书号, 图书数量)
+        VALUES (@BookID, @Quantity);
+    END
+END;
+GO
+
+
+--3. 存储过程：记录销售
+CREATE PROCEDURE RecordSale
+    @SalesOrderID nchar(10),
+    @BookID nchar(10),
+    @CustomerID nchar(10),
+    @QuantitySold int,
+    @SaleDate date,
+    @TotalAmount float
+AS
+BEGIN
+    INSERT INTO 销售信息 (销售单号, 书号, 顾客号, 图书销售数量, 销售日期, 销售金额)
+    VALUES (@SalesOrderID, @BookID, @CustomerID, @QuantitySold, @SaleDate, @TotalAmount);
+
+    UPDATE 库存信息
+    SET 图书数量 = 图书数量 - @QuantitySold
+    WHERE 书号 = @BookID;
+END;
+GO
+
+
+--4. 存储过程：顾客消费统计
+CREATE PROCEDURE CalculateCustomerSpending
+    @CustomerID nchar(10)
+AS
+BEGIN
+    SELECT SUM(销售金额) AS 总消费金额
+    FROM 销售信息
+    WHERE 顾客号 = @CustomerID;
+END;
+GO
+
+
+--1. 查询图书信息（使用DISTINCT去重）
+SELECT DISTINCT 图书类别
+FROM 图书信息;
+
+
+--2. 查询顾客信息（使用TOP限制返回的记录数）
+SELECT TOP 5 顾客号, 姓名, 年龄
+FROM 顾客信息
+ORDER BY 年龄 ASC;
+
+
+--3. 删除库存为0的图书（DELETE操作）
+DELETE FROM 库存信息
+WHERE 图书数量 = 0;
+
+--4. 更新顾客的电话号码（UPDATE操作）
+UPDATE 顾客信息
+SET 电话号码 = '13816518096'
+WHERE 顾客号 = '1';
+
+--5. 多表连接查询（INNER JOIN）
+SELECT b.图书名称, s.图书销售数量
+FROM 销售信息 s
+INNER JOIN 图书信息 b ON s.书号 = b.书号;
+
+
+--6. 图书销售额汇总（GROUP BY和HAVING）
+SELECT b.图书类别, SUM(s.销售金额) AS 总销售额
+FROM 销售信息 s
+JOIN 图书信息 b ON s.书号 = b.书号
+GROUP BY b.图书类别
+HAVING SUM(s.销售金额) > 100;
+
+--7. 新书入库（INSERT操作）
+INSERT INTO 图书信息 (书号, 图书名称, 图书类别, 图书出版社, 图书价格, 图书页数)
+VALUES ('005', '名人传', '传记', '人民出版社', 80.0, 300);
+
+--8. 查询供应商的供货记录（LEFT JOIN）
+SELECT sp.供应商名称, p.书号, p.图书进货数量
+FROM 供应商信息 sp
+LEFT JOIN 进货信息 p ON sp.供应商号 = p.供应商号;
+
+
+--9. 顾客购买图书统计（复杂查询逻辑）
+SELECT c.姓名, COUNT(DISTINCT b.图书类别) AS 购买图书种类数, SUM(s.图书销售数量) AS 总购买数量
+FROM 销售信息 s
+JOIN 顾客信息 c ON s.顾客号 = c.顾客号
+JOIN 图书信息 b ON s.书号 = b.书号
+GROUP BY c.姓名;
+
+--10. 按年度统计图书销售信息（时间函数和排序）
+SELECT YEAR(s.销售日期) AS 销售年份, SUM(s.图书销售数量) AS 年销售量, SUM(s.销售金额) AS 年销售额
+FROM 销售信息 s
+GROUP BY YEAR(s.销售日期)
+ORDER BY SUM(s.图书销售数量) DESC;
